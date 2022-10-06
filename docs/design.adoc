@@ -74,13 +74,23 @@ Both track and stations can be upgraded:
 * Signal boxes can be added to track, allowing increased train traffic in one direction.
 ** Usually only one train can occupy a section of track, by splitting the track into more sections using signals you can increase the through-put of the line.
 * Stations can be increased in size to increase their catchment area.
-* Ancillary buildings can be added to stations, such as maintenance yards, goods warehouses and hotels.
+* Ancillary buildings can be added to stations, such as locomotive works, goods warehouses and hotels.
 
 #### Trains
 
-Creating and scheduling trains required the following considerations from the player:
+Only a few types of locomotive are available at the start of the game but each locomotive will advantages and disadvanges, requiring the player the make consideration of the following:
 
-The player can see what the station supplies and what the station will buy TODO
+* Consist:
+** Faster cargoes are more time-sensitive and pay more for quicker delivery so locomotives with a higher top speed are more ideal.
+** Slower cargoes that are less time-sensitive make sense on longer trains pulled by slower, but more powerful locomotives.
+** Whether the consist will change at any point, for example when dropping off raw resources and picking up manufactured goods might require changing to different cars. Switching time counts against delivery time.
+* Routes:
+** Trains are built at any station with a locomotive works improvement, so it pays to build the train close to where it will run.
+** Whether there are other trains using part of the route, a new slow freight service will hold up faster passenger services using the same track.
+** The route is determined by adding scheduled stops to a train's itinerary and choosing the service type.
+** The service type determines whether it's a local service that calls at every station between scheduled stops or more of an express service that calls at only the major stations, or limited service calling only at the explicitly scheduled stations.
+
+Trains can also be upgraded. As new locomotives become available it might be desirable to replace existing locomotives with ones more suited to the service being provided. Increased maintenance costs of aging locomotives may also mean that a replacement locomotive is the best way to keep a service at maximum profitability. Trains may also be retired if no longer needed.
 
 ### Secondary Loop: The Economic Game
 
@@ -138,6 +148,8 @@ The game map consists of square or hexagonal tiles of land and sea created from 
 * Track configuration that was laid on the tile (single or double tracked, and whether it is tunneled or bridged).
 
 The configuration options for map generation, including the random seed, should be easily sharable for example by pastable text string. As a stretch goal, consider adding an editor for players to construct their own maps and allow exporting and importing such custom made maps.
+
+TODO growth and expanding cities
 
 ### Laying Track
 
@@ -284,64 +296,75 @@ a|image::design-resources/hex_orth_adj.png["",125]
 a|image::design-resources/hex_diag_adj.png["",125]
 |===
 
-
 ### Placing Stations
 
 The player must build new stations on existing track in the rail network. A station will occupy one tile on the map, either a tile that contains the end of a track, or a tile that contains straight track only i.e., it is prohibited to place a station on a tile that contains any curves or junctions.
 
 There are several types of station from which to choose, each with differently sized catchment areas, with larger catchment areas costing more to place. The catchment area is defined as a radius (number of rings of tiles) around the tile containing the station and when placing a new station, and may not overlap with another station's catchment area. A proposed new station's catchment area is shown so the player can position it optimally.
 
-Stations may upgraded by building a different type of station over an existing station. The upgrade discount is the money off the cost of the new station when replacing a pre-existing station of that type.
-
-TODO up/downgrade fee formula
-box -> dep 38  (-12)
-box -> sta 88  (-12)
-dep -> sta 76  (-24)
-box -> ter 188 (-12)
-dep -> ter 176 (-24)
-sta -> ter 152 (-48)
-
-ter -> sta 4 fee
-ter -> dep 46 refund
-ter -> box 71 refund
-sta -> dep 2 fee
-sta -> box 23 refund
-dep -> box 1 fee
-
-[cols="1,1,1,1,4"]
+[cols="2,1,1,6"]
 |===
-|Station Type|Cost|Upgrade Discount|Catchment Radius|
+|Station Type|Cost|Catchment Radius|
 
 |Signal Box
 |£25,000
-|-£12,000
 |0
 |Not actually a station, it is used to break track up into smaller blocks to inscrease a line's throughput. See the section on link:#_signal_blocks[signal blocks] below.
 
 |Halt
 |£50,000
-|-£24,000
 |1
 |A small unstaffed station for passengers or a goods-only depot.
 
 |Station
 |£100,000
-|-£48,000
 |2
 |A moderately-sized station or terminus for passengers and goods.
 
 |Interchange
 |£200,000
-|N/A
 |3
 |A large, regionally important station or terminus.
 |===
 
 All stations types implicitly include the functionality of signal boxes, but signal boxes are not themselves stations. I.e., trains cannot load/unload passengers or cargo at signal boxes, but since they don't have a catchment area the rules about catchment area overlap do not apply to signal boxes.
 
+Stations may be upgraded or downgraded by building a different type of station over an existing station. When upgrading, the discount on the cost of the new station is determined by the station type from which the player is upgrading. When downgrading, the refund is determined by how many levels the station is being downgraded. Stations may only be upgraded if the catchment area overlap rules allow.
+
+[cols="1h,1,1,1,1"]
+|===
+|From -> To|Signal Box|Halt|Station|Interchange
+
+|Signal Box
+|N/A
+|£12,000 discount
+|£12,000 discount
+|£12,000 discount
+
+|Halt
+|£12,000 refund
+|N/A
+|£24,000 discount
+|£24,000 discount
+
+|Station
+|£24,000 refund
+|£12,000 refund
+|N/A
+|£48,000 discount
+
+|Interchange
+|£48,000 refund
+|£24,000 refund
+|£12,000 refund
+|N/A
+|===
+
 When created, stations are given names according to the nearest town. If such a named station (e.g., *Bolton*) already exists, then a positional suffix (e.g., *Bolton West*, *Bolton Central*) or nearby geographic or railway feature suffix (e.g., *Bolton Forest*, *Bolton Hills*, *Bolton Junction*) will be added. The game will try not to duplicate station names, which is helpful for creating train itineraries.
 
 TODO station maintenance
+
+#### Station Improvements
 
 Train stations may be improved by building ancilliary buildings that provide various benefits described below. The very first station placed by the player comes with a free Locomotive Works.
 
@@ -406,9 +429,86 @@ The player may override the default signal behaviour and set one of two addition
 |The next train may proceed through this signal whether the following block is clear or not. After a train goes through this signal, the mode switches back to normal.
 |===
 
-Any number of trains may be held at a hold signal in a FIFO queue i.e., when a train reaches a signal it is considered to have exited the preceeding block, which is cleared for the next train. When a signal holding multiple trains clears to proceed, the trains may enter the block one at a time in the normal way.
+Any number of trains may be held at a hold signal i.e., when a train reaches a signal it is considered to have exited the preceeding block, which is cleared for the next train. When a signal holding multiple trains clears to proceed, the trains may enter the block one at a time in the normal way according their class. Higher class trains like passenger services get higher priority at signals than lower class trains like slow freight services.
 
-If two trains encounter each other on the same block of train, they collide and are both destroyed. This may affect the shareholders' opinion of the player.
+If two trains encounter each other on the same block of train, they collide and both locomotives and all the cars in both trains, including all loaded cargo are destroyed. This may affect the shareholders' opinion of the player and the supply of the cargos that were destroyed, which is temporarily eliminated from all stations in the network.
+
+### Building Trains
+
+New locomotives may be built at any station with the locomotive works improvement. Not all locomotive types are available at the start of the game, but more types will unlock as the game progresses.
+
+[cols="2,2,6"]
+|===
+|Type|Cost|
+
+|TODO
+|TODO
+|
+|===
+
+Once a locomotive is built, its initial set of cars is chosen. Up to eight cars may be added to a train, in any combination. The available cars are divided into 5 classes and the most common class of car in the train determines the train's overall class. A train's class may affect the treatment it receives at signals, where higher class trains are given priority. Each class of car also has its own weight characteristics that is used to determine the speed of the train pulling it. The set of cars making up a train is known as its consist.
+
+[cols="2,2,2,4"]
+|===
+|Class|Priority|Unloaded Weight|Loaded Weight
+
+|Mail
+|0 (Highest)
+|190
+|290
+
+|Passengers
+|1
+|180
+|300
+
+|Fast Freight
+|2
+|160
+|320
+
+|Slow Freight
+|3
+|140
+|340
+
+|Bulk Freight
+|4 (Lowest)
+|80
+|400
+|===
+
+#### Scheduling
+
+Setting the route of a train can be done after it is built by adding up to four scheduled stops. The train will make its way between these stops and after the final stop, will make its way back to the first. The train will always stop at the scheduled stations, but the train may also be assigned a type that determines whether they also stop at stations in between the scheduled stops.
+
+[cols="2,8"]
+|===
+|Type|Behaviour
+
+|Local
+|Stops at all stations between scheduled stops. This is the default type.
+
+|Through
+|Stops at all stations between scheduled stops except for halts. I.e., stations or interchanges.
+
+|Express
+|Stops at all stations between scheduled stops except for halts and stations. I.e., interchanges only.
+
+|Limited
+|Stops at scheduled stops only.
+|===
+
+For each scheduled stop, the consist of the train may be configured to change to allow dropping off one type of cargo and picking up another. A train may also be given a wait-until-full order for any of its scheduled stops. This causes the train to wait at a scheduled stop until all of its cars are fully loaded before setting off.
+
+As well as the four regular scheduled stops, a train may be assigned a priority order to temporarily change its route or consist. A priority station stop will cause the train to deviate from its schedule and go the prioritised destination before resuming its normal schedule. A priority consist will cause the train to change cars at the next station it stops at, instead of waiting until the next scheduled stop for a change of consist.
+
+TODO switching/unloading times
+TODO revenues
+
+#### Named Trains
+
+Locomotives are not named unless a train breaks a new speed record, in which case its locomotive may be given a name, either a random name generated by the game, or a name of the player's choice. Trains with a named locomotive gain a 25% bonus on passenger revenue. Names are kept if the locomotive is upgraded, but the name is lost if the locomotive is retired.
 
 ## Road to a Prototype
 
